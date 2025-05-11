@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: random-logs-generator
+  namespace: default
+  labels:
+    app: random-logs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: random-logs
+  template:
+    metadata:
+      labels:
+        app: random-logs
+    spec:
+      containers:
+      - name: log-generator
+        image: python:3.9-slim
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            pip install faker &&
+            python -c "
+            import logging
+            import random
+            import time
+            from faker import Faker
+            logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+            fake = Faker()
+            log_levels = [
+                (logging.INFO, 'INFO: Processing request for {}'),
+                (logging.WARNING, 'WARNING: High latency detected in {}'),
+                (logging.ERROR, 'ERROR: Failed to process {}'),
+                (logging.ERROR, 'ERROR: Request timeout for {}')
+            ]
+            while True:
+                log_level, message = random.choice(log_levels)
+                logging.log(log_level, message.format(fake.uri()))
+                time.sleep(random.uniform(0.5, 2.0))
+            "
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"

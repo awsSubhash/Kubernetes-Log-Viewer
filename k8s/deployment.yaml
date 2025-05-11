@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-viewer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-viewer
+  template:
+    metadata:
+      labels:
+        app: log-viewer
+    spec:
+      serviceAccountName: log-viewer-sa
+      containers:
+        - name: log-viewer
+          image: subhash45/log-viewer:v4
+          ports:
+            - containerPort: 3000
+

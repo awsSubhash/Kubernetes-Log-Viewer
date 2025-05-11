@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: subhash
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subhash-app
+  namespace: subhash
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: subhash-app
+  template:
+    metadata:
+      labels:
+        app: subhash-app
+    spec:
+      containers:
+      - name: subhash-container
+        image: nginx:latest  # Replace with your desired image
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: subhash-service
+  namespace: subhash
+spec:
+  selector:
+    app: subhash-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP
+
