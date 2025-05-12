@@ -37,20 +37,36 @@ app.get("/logs", async (req, res) => {
               container: container.name,
               log: log.body,
             }))
-            .catch(() => null)
+            .catch((err) => {
+              console.error(`Failed to fetch logs for pod ${podName}, container ${container.name}:`, err);
+              return null;
+            })
         );
       }
     }
 
     const logs = (await Promise.all(logPromises)).filter(Boolean);
     const filteredLogs = logs.map((entry) => {
-      const lines = entry.log.split("\n").map(line => {
+      // Check if entry.log is a string before splitting
+      if (typeof entry.log !== 'string') {
+        console.warn(`Non-string log for pod ${entry.pod}, container ${entry.container}:`, entry.log);
+        return {
+          ...entry,
+          log: [],
+          hasErrors: false,
+        };
+      }
+
+      // Split logs only if non-empty
+      const lines = entry.log.trim().length > 0 ? entry.log.split("\n") : [];
+
+      const processedLines = lines.map((line) => {
         // Extract timestamp (ISO 8601 format)
         const isoRegex = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z)\s+(.*)/;
         const match = line.match(isoRegex);
         let timestamp = null;
         let text = line;
-        
+
         if (match) {
           timestamp = new Date(match[1]);
           text = match[2];
@@ -59,7 +75,7 @@ app.get("/logs", async (req, res) => {
         // Detect log level
         let logClass = 'log-default';
         const lowerText = text.toLowerCase();
-        
+
         if (lowerText.includes('error') || lowerText.includes('exception')) {
           logClass = 'log-error';
         } else if (lowerText.includes('warn') || lowerText.includes('warning')) {
@@ -68,31 +84,31 @@ app.get("/logs", async (req, res) => {
           logClass = 'log-info';
         }
 
-        return { 
-          text, 
+        return {
+          text,
           class: logClass,
-          timestamp: timestamp ? timestamp.toISOString() : null 
+          timestamp: timestamp ? timestamp.toISOString() : null,
         };
-      }).filter(lineObj => {
+      }).filter((lineObj) => {
         // Apply filters
         const lineTime = lineObj.timestamp ? new Date(lineObj.timestamp) : null;
-        const timeValid = (!startDate || lineTime >= startDate) && 
-                         (!endDate || lineTime <= endDate);
+        const timeValid = (!startDate || (lineTime && lineTime >= startDate)) &&
+                         (!endDate || (lineTime && lineTime <= endDate));
         const textValid = !search || lineObj.text.toLowerCase().includes(search.toLowerCase());
-        
+
         return timeValid && textValid;
       });
 
-      return { 
-        ...entry, 
-        log: lines,
-        hasErrors: lines.some(line => line.class === 'log-error')
+      return {
+        ...entry,
+        log: processedLines,
+        hasErrors: processedLines.some((line) => line.class === 'log-error'),
       };
-    }).filter(entry => entry.log.length > 0);
+    }).filter((entry) => entry.log.length > 0);
 
     res.json(filteredLogs);
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching logs:', err);
     res.status(500).json({ error: "Failed to fetch logs" });
   }
 });
