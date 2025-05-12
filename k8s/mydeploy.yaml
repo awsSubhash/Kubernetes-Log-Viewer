@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asus
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: asus
+  template:
+    metadata:
+      labels:
+        app: asus
+    spec:
+      containers:
+      - name: asus
+        image: nginx:latest  # Replace with your desired image
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asus
+  namespace: production
+spec:
+  selector:
+    app: asus
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP
