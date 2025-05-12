@@ -51,7 +51,7 @@ h1 {
 
 input {
   flex: 1;
-  min-width: 300px;
+  min-width: 200px;
   padding: 0.8rem 1.2rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -59,6 +59,11 @@ input {
   color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.2s ease;
+}
+
+input[type="datetime-local"] {
+  flex: 1;
+  min-width: 220px;
 }
 
 input::placeholder {
@@ -69,6 +74,12 @@ input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.datetime-inputs {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
 }
 
 button {
@@ -138,11 +149,16 @@ pre {
   line-height: 1.4;
 }
 
-/* Log level colors */
 .log-error { color: #ff5252; }
 .log-warning { color: #ffb74d; }
 .log-info { color: #76d275; }
 .log-default { color: var(--text-primary); }
+
+.log-timestamp {
+  color: #888;
+  font-size: 0.85em;
+  margin-right: 8px;
+}
 
 .alert {
   padding: 1rem;
@@ -168,6 +184,12 @@ pre {
   animation: spin 1s ease-in-out infinite;
 }
 
+.time-filter-note {
+  color: #888;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -188,5 +210,9 @@ pre {
   button {
     width: 100%;
     justify-content: center;
+  }
+  
+  .datetime-inputs {
+    flex-direction: column;
   }
 }

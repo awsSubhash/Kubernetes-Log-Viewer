@@ -12,13 +12,18 @@
     <header>
       <h1>🛠 Kubernetes Log Viewer</h1>
       <div class="input-group">
-        <input type="text" id="appName" placeholder="Filter by App Name" />
+        <input type="text" id="appName" placeholder="App Name" />
         <input type="text" id="search" placeholder="Search keywords..." />
+        <div class="datetime-inputs">
+          <input type="datetime-local" id="startTime" />
+          <input type="datetime-local" id="endTime" />
+        </div>
         <button id="searchButton" onclick="fetchLogs()">
           <span class="button-text">Search Logs</span>
           <div class="spinner hidden"></div>
         </button>
       </div>
+      <div class="time-filter-note">Times are in your local timezone</div>
     </header>
     
     <div id="loading" class="hidden">Loading logs...</div>

@@ -1,6 +1,8 @@
 async function fetchLogs() {
   const app = document.getElementById('appName').value;
   const search = document.getElementById('search').value;
+  const startTime = document.getElementById('startTime').value;
+  const endTime = document.getElementById('endTime').value;
   const logsDiv = document.getElementById('logs');
   const loading = document.getElementById('loading');
   const errorDiv = document.getElementById('error');
@@ -15,18 +17,20 @@ async function fetchLogs() {
   loading.classList.remove('hidden');
 
   try {
-    const res = await fetch(`/logs?app=${app}&search=${search}`);
+    const params = new URLSearchParams({
+      app,
+      search,
+      start: startTime ? new Date(startTime).toISOString() : '',
+      end: endTime ? new Date(endTime).toISOString() : ''
+    });
+
+    const res = await fetch(`/logs?${params}`);
     
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    
     const data = await res.json();
-
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
+    
+    if (data.error) throw new Error(data.error);
     if (data.length === 0) {
       logsDiv.innerHTML = '<div class="alert">No logs found matching your criteria</div>';
       return;
@@ -36,9 +40,12 @@ async function fetchLogs() {
       const logEntry = document.createElement('div');
       logEntry.className = `log-entry ${entry.hasErrors ? 'has-errors' : ''}`;
       
-      const logContent = entry.log.map(line => 
-        `<span class="${line.class}">${line.text}</span>`
-      ).join('\n');
+      const logContent = entry.log.map(line => {
+        const timestamp = line.timestamp ? 
+          `<span class="log-timestamp">[${new Date(line.timestamp).toLocaleString()}]</span>` : 
+          '';
+        return `${timestamp}<span class="${line.class}">${line.text}</span>`;
+      }).join('\n');
 
       logEntry.innerHTML = `
         <h3>
@@ -62,7 +69,6 @@ async function fetchLogs() {
   }
 }
 
-// Add enter key support
 document.getElementById('search').addEventListener('keypress', (e) => {
   if (e.key === 'Enter') fetchLogs();
 });

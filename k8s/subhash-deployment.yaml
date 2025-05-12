@@ -9,7 +9,7 @@ metadata:
   name: subhash-app
   namespace: subhash
 spec:
-  replicas: 2
+  replicas: 5
   selector:
     matchLabels:
       app: subhash-app

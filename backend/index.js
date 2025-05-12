@@ -15,8 +15,9 @@ const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 
 app.get("/logs", async (req, res) => {
   try {
-    const search = req.query.search || "";
-    const appName = req.query.app || "";
+    const { app: appName, search, start, end } = req.query;
+    const startDate = start ? new Date(start) : null;
+    const endDate = end ? new Date(end) : null;
 
     const pods = await k8sApi.listPodForAllNamespaces();
     const logPromises = [];
@@ -29,8 +30,7 @@ app.get("/logs", async (req, res) => {
 
       for (const container of pod.spec.containers) {
         logPromises.push(
-          k8sApi
-            .readNamespacedPodLog(podName, namespace, container.name)
+          k8sApi.readNamespacedPodLog(podName, namespace, container.name)
             .then((log) => ({
               pod: podName,
               namespace,
@@ -45,28 +45,50 @@ app.get("/logs", async (req, res) => {
     const logs = (await Promise.all(logPromises)).filter(Boolean);
     const filteredLogs = logs.map((entry) => {
       const lines = entry.log.split("\n").map(line => {
-        let logClass = 'log-default';
-        const lowerLine = line.toLowerCase();
+        // Extract timestamp (ISO 8601 format)
+        const isoRegex = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z)\s+(.*)/;
+        const match = line.match(isoRegex);
+        let timestamp = null;
+        let text = line;
         
-        if (lowerLine.includes('error') || lowerLine.includes('exception')) {
+        if (match) {
+          timestamp = new Date(match[1]);
+          text = match[2];
+        }
+
+        // Detect log level
+        let logClass = 'log-default';
+        const lowerText = text.toLowerCase();
+        
+        if (lowerText.includes('error') || lowerText.includes('exception')) {
           logClass = 'log-error';
-        } else if (lowerLine.includes('warn') || lowerLine.includes('warning')) {
+        } else if (lowerText.includes('warn') || lowerText.includes('warning')) {
           logClass = 'log-warning';
-        } else if (lowerLine.includes('info') || lowerLine.includes('debug')) {
+        } else if (lowerText.includes('info') || lowerText.includes('debug')) {
           logClass = 'log-info';
         }
 
-        return { text: line, class: logClass };
-      }).filter(lineObj => 
-        search ? lineObj.text.toLowerCase().includes(search.toLowerCase()) : true
-      );
+        return { 
+          text, 
+          class: logClass,
+          timestamp: timestamp ? timestamp.toISOString() : null 
+        };
+      }).filter(lineObj => {
+        // Apply filters
+        const lineTime = lineObj.timestamp ? new Date(lineObj.timestamp) : null;
+        const timeValid = (!startDate || lineTime >= startDate) && 
+                         (!endDate || lineTime <= endDate);
+        const textValid = !search || lineObj.text.toLowerCase().includes(search.toLowerCase());
+        
+        return timeValid && textValid;
+      });
 
       return { 
         ...entry, 
         log: lines,
         hasErrors: lines.some(line => line.class === 'log-error')
       };
-    });
+    }).filter(entry => entry.log.length > 0);
 
     res.json(filteredLogs);
   } catch (err) {

@@ -15,7 +15,7 @@ spec:
       serviceAccountName: log-viewer-sa
       containers:
         - name: log-viewer
-          image: subhash45/log-viewer:v4
+          image: subhash45/log-viewer:v5
           ports:
             - containerPort: 3000
 
